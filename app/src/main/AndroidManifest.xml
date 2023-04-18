@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_age"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        tools:targetApi="31">
+
+        <!--必须标记组件工厂实现的完整包-->
+        <meta-data
+            android:name="media_plugin_api_impl"
+            android:value="com.example.ageanimeplugin.plugin.PluginFactory" />
+        <activity
+            android:name="com.example.ageanimeplugin.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <!--方便调试-->
+                <action android:name="media_plugin_debug" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
