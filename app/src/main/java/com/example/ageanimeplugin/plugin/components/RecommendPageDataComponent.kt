@@ -42,7 +42,7 @@ class RecommendPageDataComponent  : ICustomPageDataComponent {
             val name = img.attr("alt")
             val coverUrl = img.attr("src")
             val videoUrl = liE.select("a").first()?.attr("href")?:""
-            val episode =   img.attr("title")
+            val episode = img.attr("title")
             data.add(
                 MediaInfo1Data(name, coverUrl, videoUrl, episode ?: "")
                 .apply {

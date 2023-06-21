@@ -8,6 +8,7 @@ import android.widget.ImageView
 import com.example.ageanimeplugin.plugin.actions.TodoAction
 import com.example.ageanimeplugin.plugin.components.Const.host
 import com.example.ageanimeplugin.plugin.util.JsoupUtil
+import com.example.ageanimeplugin.plugin.util.ParseHtmlUtil
 import com.example.ageanimeplugin.plugin.util.ParseHtmlUtil.getImageUrl
 import com.su.mediabox.pluginapi.action.ClassifyAction
 import com.su.mediabox.pluginapi.action.CustomPageAction

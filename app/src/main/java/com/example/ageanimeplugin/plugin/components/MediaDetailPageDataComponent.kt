@@ -35,7 +35,7 @@ class MediaDetailPageDataComponent : IMediaDetailPageDataComponent {
         val left = document.getElementsByClass("div_left").first()
         left?.let {
             val imgLeft = it.select(".poster")
-            cover = imgLeft.attr("src").getImageUrl()
+            cover = imgLeft.attr("src")
             title = imgLeft.attr("alt")
             //更新状况
             upState = it.select(".detail_imform_kv")[7].text()
@@ -183,7 +183,7 @@ class MediaDetailPageDataComponent : IMediaDetailPageDataComponent {
         val videoInfoItemDataList = mutableListOf<MediaInfo1Data>()
         val results: Elements = element.select("ul").select("li")
         for (i in results.indices) {
-            val cover = results[i].select("img").attr("src").getImageUrl()
+            val cover = results[i].select("img").attr("src")
             val title = results[i].select("a")[1].text()
             val url = results[i].select("a")[1].attr("href")
             val item = MediaInfo1Data(

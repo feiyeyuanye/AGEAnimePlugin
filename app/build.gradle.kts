@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.ageanimeplugin"
         minSdk  = 24
         targetSdk = 31
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -28,7 +28,7 @@ android {
         }
         debug {
             applicationIdSuffix = ".debug"
-            resValue("string", "app_name", "AGE动漫Debug")
+            resValue("string", "app_name", "dAGE动漫")
         }
     }
     compileOptions {

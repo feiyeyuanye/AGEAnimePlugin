@@ -55,7 +55,8 @@ class UpdateTablePageDataComponent : ICustomPageDataComponent {
             override suspend fun loadData(page: Int): List<BaseData> {
                 val loadPage = page+1
                 val cookies = mapOf("cookie" to PluginPreferenceIns.get(JsoupUtil.cfClearanceKey, ""))
-                // 每次获取数据都是解析了整个网页
+                // ul 数据由 js 的 on_new_anime_page_btn 方法动态修改
+                // 这里每次获取数据都是解析了整个网页
                 val document = Jsoup.parse(
                     WebUtilIns.getRenderedHtmlCode(
                         Const.host, loadPolicy = object :
