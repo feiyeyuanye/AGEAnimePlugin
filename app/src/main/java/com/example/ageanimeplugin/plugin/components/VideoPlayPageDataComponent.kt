@@ -23,15 +23,6 @@ import java.io.File
 
 class VideoPlayPageDataComponent : IVideoPlayPageDataComponent {
 
-    private fun blobDataTmpFile(url: String) =
-        File(
-            AppUtil.appContext.externalCacheDir,
-            "${Uri.parse(url).path?.replace("/", "!") ?: "blob_data_tmp"}.m3u8"
-        ).apply {
-            if (!exists())
-                createNewFile()
-        }
-
     private var episodeDanmakuId = ""
     override suspend fun getDanmakuData(
         videoName: String,
@@ -96,7 +87,7 @@ class VideoPlayPageDataComponent : IVideoPlayPageDataComponent {
         val videoUrl = withContext(Dispatchers.Main) {
             val iframeUrl = withTimeoutOrNull(10 * 1000) {
                 WebUtilIns.interceptResource(
-                    url, "(.*)url=(.*)",
+                    url, "(.*)\\.m3u8(.*)",
                     loadPolicy = object : WebUtil.LoadPolicy by WebUtil.DefaultLoadPolicy {
                         override val headers = cookies
                         override val userAgentString = ua
@@ -105,46 +96,18 @@ class VideoPlayPageDataComponent : IVideoPlayPageDataComponent {
                 )
             } ?: ""
             async {
+                Log.e("TAG","1 $iframeUrl")
                 when {
                     iframeUrl.isBlank() -> iframeUrl
-                    //1. dpx2/alm3p需要blob拦截（直接拼接请求是加密的）
-                    //https://m.yhdmp.net/yxsf/player/dpx2/alm3p.html?url=%2fgm3px%2fgt%2d20110046%5frbak%2f%5bSC%2dOL%5d%5b6286f85304f8f2fa%5d%5b01%5d%5b720P%5d%5bCHS%5d%20nvl%2drm&getplay_url=%2F_getplay%3Faid%3D11128%26playindex%3D1%26epindex%3D0%26r%3D0.07102778563665257&vlt_l=0&vlt_r=0
-                    iframeUrl.contains("dpx2/alm3p") -> {
-                        val blobData = WebUtilIns.interceptBlob(iframeUrl, "^#EXTM(.*)", object :
-                            WebUtil.LoadPolicy by WebUtil.DefaultLoadPolicy {
-                            override val headers = cookies
-                            override val userAgentString = ua
-                            override val isClearEnv = false
-                        })
-                        blobDataTmpFile(url).run {
-                            writeText(blobData)
-                            absolutePath
-                        }
-                    }
-                    //2. ckx1/dpx2直接拼接
-                    //https://m.yhdmp.net/yxsf/player/ckx1/?vtype=video%2Fmp4&url=https%3A%2F%2Falidocs.oss-cn-zhangjiakou.aliyuncs.com%2Fres%2FMeYVOLRQjKL0npz2%2Fimg%2F38e3039d-9c9d-474d-a9c8-85cc67c173d6.gif&getplay_url=%2F_getplay%3Faid%3D20410%26playindex%3D1%26epindex%3D0%26r%3D0.7426984447268477&vlt_l=0&vlt_r=0
-                    //https://m.yhdmp.net/yxsf/player/dpx2/?url=https%3A%2F%2Fv26.bdxiguavod.com%2F45df1c7fca3e1e04614c37a0cbee8659%2F627e8479%2Fvideo%2Ftos%2Fcn%2Ftos%2Dcn%2Dv%2D3506%2F2f354fc352d14aa4853b74da14ebc9f6%2F&getplay_url=%2F_getplay%3Faid%3D22263%26playindex%3D1%26epindex%3D0%26r%3D0.5827033728897308&vlt_l=0&vlt_r=0
-                    iframeUrl.contains("player") -> iframeUrl.substringAfter("url=")
-                        .substringBefore("&").urlDecode()
-                    //3. 一般是国产动漫，通过接口解析正版源，通常返回m3u8
-                    //https://chaxun.truechat365.com/?url=https://v.qq.com/x/cover/yl6lapwmmx5ivew/d0040evqzsv.html&getplay_url=%2F_getplay%3Faid%3D21471%26playindex%3D1%26epindex%3D0%26r%3D0.9602989112327851&vlt_l=0&vlt_r=0
-                    else -> {
-                        Log.d("无法获取链接", "开始分析iframe内源码")
-                        val iframeDoc = Jsoup.parse(
-                            WebUtilIns.getRenderedHtmlCode(
-                                iframeUrl,
-                                "(.*)\\.(gif|mp4)\\?(.*)",
-                                //这里使用电脑的UA会被强制使用H5标准下的blob
-                                loadPolicy = object :
-                                    WebUtil.LoadPolicy by WebUtil.DefaultLoadPolicy {
-                                    override val headers = cookies
-                                    override val userAgentString = ua
-                                    override val isClearEnv = false
-                                }
-                            )
-                        )
-                        iframeDoc.select("#video").select("video").attr("src")
-                    }
+                    // https://wolongzywcdn3.com:65/H7UdaMTN/index.m3u8
+                    // https://hnzy.bfvvs.com/play/BeXnrLWb/index.m3u8
+                    iframeUrl.endsWith(".m3u8") -> iframeUrl
+                    // https://vip.sp-flv.com:8443/playurl/tu/794a73566c73727a324e517658516e5130416e6179673d3d.m3u8?vid=10b1MPhBtCb1uZLhRgbcJuLw6rnamlwEdEYUHHDKncO2yeFgHO1OjofxxcyuIcjLmLdlxfPB91GPh6omccJp5-5lvknQ8BWmYG6aTfVPM56Rl1DIGHAVZI0IJujPlI2LhVXU0lqjQ8cmpa5eY2E0mE8dMwLMYv_BrcnloyHBrxmGi80Q7v1z0L2F7xdEwdpYB9AWjDTL-sUH8MYYuVj0Jxib27ae970UspQXo3Uvi9gyhrxiDP360Hd4mxsFSduLLn8-u0Q--mh75Z_E2WtDY7RU-DdvFXNNejc4Y0ykDer--rDUzIaCgGCZG4vPZX4MJSNQPhIXBwEmfSEnPKiN4E6cgoDuchuIB49GWdbT0PeUJiottZ8cY3UvD2PJ28CWSrg1XoU0l-wg3d6yfnkaG6Vmx0H6C6Skq84&type=m3u8&client_netip=112.98.80.89&sid=de01ec7ffc1f3028edf3f401191a3bbf&app_ver=V3.0&url=https%3A%2F%2Fdy.jx1024.com%3A8443%2Fuploads%2F%E8%BF%9B%E5%87%BB%E7%9A%84%E5%B7%A8%E4%BA%BA%E7%AC%AC%E4%B8%89%E5%AD%A3Part2%E7%AC%AC01%E9%9B%86.m3u8&media_type=jpg&ts=324236546a3350595934716670344a3535734d6857673d3d&sign=YzZia1lCNzdLZmhWU1I5WWxQdVNOekxnQ3VmRFg5VFQycDNVYytTM3JabHhzWWt5MHkwa1FKbzNkWEN1VE5jcVNOK2U1NjkrV0pnbVlQdk5TKzF4Zk1kTmhvdzlFTTlmR0hITmRTWUU3RjFnWWwySTNUMXNPa3l4UGl1VXNRVXNJY2dpbSttem1INFFlN1U3QTVlVGt2YTNZbjVvNE9YT3Z6OHhkaE9MNDRiU0tDUzY1YjVsS1dNUGZ1VnQ2c29JN01vUDV0bTYyRFFZempDYXlGZmZidWZiUVMxRlNqQ1V6Z2U1WlR3TGJTQzQ1UFJNS3Erbk5lV2YrVjU3R21UZkxENG9QN245QVlZMHlhSG40SHpRbm1xSUw5QVJnY05TZWk4aW1zZjZMcHd2NnVpVU95ek5rWlI4Z3NlckhaWVlJNmExT3hCZkttVnhWelYrbjk4MWJhN2N4L3AwcitTUjE2RWdMd0pVME54VW9RUlBicmJ2TzJvSFk1eVNSWVdrOFJTNUJtOWkyYklxR0U2bk9WTWJxakFZMk9VOXpHYnVVZ0U1SnEzY24vOVFsaWVOMUJCSU9UckxTbVp6OTNEUkROcS9OcnFOUDFDaXdVNUtlMzgwa2tSRjZac1NxaG1LNTN3aWlqZS9aa01mbWhtYVROWU9OdExya293VWxpM0VMRGF4cHVkczdvUUt1SDhZekxydCtsbjNKVUJXUmhEVmlIVURQWHRTdjNyR05iSEkyZ0pvVWlvRm4wUThnd1JKa0QrWTN6MnBmV3dINUZ4STdPdk92cGhvTS9VWC9aVHkwUG10emtwemppVmk5VXZWWnowOE1GWUxBazRLeFpQVCtRSjhvSUU0d3pCN1gxZlE3SXFlK1QvZzg2eGxqYklaWWRYNlZLZ2poR200Skh0WXduK1lKcDY3MjQ0Sk1SQUg3VWJ2QmpXTVk2RTM0QXg1S2o5ZFNyOHFKQy9naSs3VjVFdFZYRTEwY0VWN3VnYWFoSWUyRUk1MHdVbk55OHc1aHhldWwvT09GdE9Zc1cyZGxQZ05vUHI2VUVXQjVURFVud3pLeW5RaHBDekt2Q1Q4cW9RanRDa1RqRVBNS0hqVSs2L1loMHNRMVI1ckh5cjVmeUg5NUNrUXJ6VktxdXh2Y3UvdXZta3BrNDBSVFJSdjNNMUJ3OHVEMlNXNDI2VThxaDVsbkRwQVN4SHFqTXYyTkhqNmNOYlR2OE5CQy92bytCdVNiQXhWWjNuQ3l3QWJDRnoyU1JEQThEblBZTnMzUk4wWldJa2ZIblA1ZmNOQXFyVEljUT09
+                    // 截取之后为 https://dy.jx1024.com:8443/uploads/进击的巨人第三季Part2第01集.m3u8 --》这样无效
+//                    iframeUrl.contains("playurl") -> iframeUrl.substringAfter("url=")
+//                        .substringBefore("&")
+//                        .urlDecode()
+                    else -> {}
                 }
             }
         }
@@ -155,8 +118,7 @@ class VideoPlayPageDataComponent : IVideoPlayPageDataComponent {
                 ""
             }
         }
-
-        return VideoPlayMedia(name.await(), videoUrl.await())
+        Log.e("TAG","2 ${videoUrl.await() as String}")
+        return VideoPlayMedia(name.await(), videoUrl.await() as String)
     }
-
 }
