@@ -1,5 +1,6 @@
 # AGEAnimePlugin-
-AGE动漫第三方客户端
+
+参考：https://github.com/RyensX/SakuraAnime2Plugin
 
 还有问题：
 - 图片不显示
