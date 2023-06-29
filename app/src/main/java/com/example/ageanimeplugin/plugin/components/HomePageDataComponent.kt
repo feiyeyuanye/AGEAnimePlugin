@@ -137,8 +137,8 @@ class HomePageDataComponent : IHomePageDataComponent {
                         video.getElementsByClass("anime_icon1_name_a").first()?.apply {
                             val name = select(".anime_icon1_name").text()
                             val videoUrl = attr("href")
-                            val coverUrl = video.select("img").first()?.attr("src")?.getImageUrl()
-                            Log.d("TAG","${coverUrl}")
+                            // https://cdn.aqdstatic.com:966/age/20230083.jpg
+                            val coverUrl = video.select("img").first()?.attr("src")
                             val episode = video.select("[title]").first()?.text()
                             if (!name.isNullOrBlank() && !videoUrl.isNullOrBlank() && !coverUrl.isNullOrBlank()) {
                                 (if (hasUpdate) update else data).add(

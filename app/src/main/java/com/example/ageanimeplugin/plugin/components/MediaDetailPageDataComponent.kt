@@ -59,27 +59,24 @@ class MediaDetailPageDataComponent : IMediaDetailPageDataComponent {
                     animeArea.text()
                 )
             })
-//            (标签与类型内容一致,并且无 href)
-            //类型
-//            val typeElements = it.select(".detail_imform_kv")[8].select(".detail_imform_value")
-//            tags.add(TagData(typeElements.text()).apply {
-//                action = ClassifyAction.obtain(
-//                    typeElements.attr("href"),
-//                    "",
-//                    typeElements.text()
-//                )
-//            })
-
-//            //标签
-//            val tagElements = it.select(".detail_imform_kv")[9].select(".detail_imform_value")
-//            val name = tagElements.text()
-//            tags.add(TagData(name).apply {
-//                action = ClassifyAction.obtain(
-//                    tagElements.attr("href"),
-//                    "", name
-//                )
-//            })
-
+//            类型
+            val typeElements = it.select(".detail_imform_kv")[8].text()
+            tags.add(TagData(typeElements).apply {
+                action = ClassifyAction.obtain(
+                    "",
+                    "",
+                    typeElements
+                )
+            })
+            //标签
+            val tagElements = it.select(".detail_imform_kv")[9].text()
+            val name = tagElements
+            tags.add(TagData(name).apply {
+                action = ClassifyAction.obtain(
+                    "",
+                    "", name
+                )
+            })
             //评分
             score = 0.0F
         }
@@ -89,7 +86,6 @@ class MediaDetailPageDataComponent : IMediaDetailPageDataComponent {
             val playlistDiv = it.select("#playlist-div")
             val playNameList = playlistDiv.select("li")
             val playEpisodeList = playlistDiv.select("[class=movurl]")
-            Log.e("TAG","番剧头部信息 ${playNameList.size}")
 
             for (index in 0..playNameList.size) {
                 val playName = playNameList.getOrNull(index)
@@ -183,7 +179,7 @@ class MediaDetailPageDataComponent : IMediaDetailPageDataComponent {
         val videoInfoItemDataList = mutableListOf<MediaInfo1Data>()
         val results: Elements = element.select("ul").select("li")
         for (i in results.indices) {
-            val cover = results[i].select("img").attr("src")
+            val cover = results[i].select("img").attr("data-src")
             val title = results[i].select("a")[1].text()
             val url = results[i].select("a")[1].attr("href")
             val item = MediaInfo1Data(
