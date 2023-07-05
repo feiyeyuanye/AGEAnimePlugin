@@ -1,12 +1,16 @@
 package com.example.ageanimeplugin.plugin.util
 
+import android.graphics.Color
+import android.graphics.Typeface
 import android.util.Log
+import android.view.Gravity
 import com.example.ageanimeplugin.plugin.components.Const.host
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
 import com.su.mediabox.pluginapi.action.ClassifyAction
 import com.su.mediabox.pluginapi.action.DetailAction
 import com.su.mediabox.pluginapi.data.*
+import com.su.mediabox.pluginapi.util.UIUtil.dp
 import java.net.URL
 
 object ParseHtmlUtil {
@@ -128,10 +132,14 @@ object ParseHtmlUtil {
      * 解析排行
      */
     fun parseRankEm(element: Element): List<BaseData> {
-        val rankInfoItemDataList = mutableListOf<BaseData>()
+//        val rankInfoItemDataList = mutableListOf<BaseData>()
+        val rankInfoItemDataList = mutableListOf<TextData>()
+        val SPAN_COUNT = 16
 
         val ul = element.select(".div_right_r")
+        var index = 0
         for (e in ul.indices){
+            index++
             // 循环 3 次
             val li = ul[e].select("li")
             for (i in li.indices){
@@ -139,19 +147,37 @@ object ParseHtmlUtil {
                 val textName = li[i].select("a").text()
                 val href = li[i].select("a").attr("href")
                 val rankValue = li[i].select(".rank_value").text()
-
-                val item = SimpleTextData("[$rankIdx] $textName --$rankValue").apply {
-                    action = DetailAction.obtain(href)
-                }
-//            val item = MediaInfo2Data(
-//                title, cover, host + url,
-//                episode, describe, tags
-//            ).apply {
-//                action = DetailAction.obtain(url)
-//            }
-                rankInfoItemDataList.add(item)
+                // 序号
+                rankInfoItemDataList.add(TagData(rankIdx).apply {
+                    spanSize = 2
+                    paddingLeft = 6.dp
+                })
+                // 名称
+                rankInfoItemDataList.add(
+                    SimpleTextData(textName).apply {
+                        spanSize = 9
+                        fontStyle = Typeface.BOLD
+                        fontColor = Color.BLACK
+                        paddingTop = 6.dp
+                        paddingBottom = 6.dp
+                        paddingLeft = 0.dp
+                        paddingRight = 0.dp
+                        action = DetailAction.obtain(href)
+                    })
+                //更新集数
+                rankInfoItemDataList.add(SimpleTextData(rankValue).apply {
+                    spanSize = (SPAN_COUNT / 4) + 1
+                    fontStyle = Typeface.BOLD
+                    paddingRight = 6.dp
+                    gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
+                })
+//                val item = SimpleTextData("[$rankIdx] $textName --$rankValue").apply {
+//                    action = DetailAction.obtain(href)
+//                }
+//                rankInfoItemDataList.add(item)
             }
         }
+        rankInfoItemDataList[0].layoutConfig = BaseData.LayoutConfig(spanCount = SPAN_COUNT)
         return rankInfoItemDataList
     }
 

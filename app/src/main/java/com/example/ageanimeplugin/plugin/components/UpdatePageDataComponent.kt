@@ -24,7 +24,7 @@ class UpdatePageDataComponent : ICustomPageDataComponent {
         get() = "最近更新"
 
     override suspend fun getData(page: Int): List<BaseData>? {
-        Log.e("TAG","page: ${page}")
+//        Log.e("TAG","page: ${page}")
         val url = Const.host + "/update?page=$page"
         val document = JsoupUtil.getDocument(url)
         val data = mutableListOf<BaseData>()

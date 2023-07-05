@@ -24,7 +24,7 @@ class RecommendPageDataComponent  : ICustomPageDataComponent {
         get() = "每日推荐"
 
     override suspend fun getData(page: Int): List<BaseData>? {
-        Log.e("TAG","page: ${page}")
+//        Log.e("TAG","page: ${page}")
         val url = Const.host + "/recommend?page=$page"
         val document = JsoupUtil.getDocument(url)
         val data = mutableListOf<BaseData>()
