@@ -5,7 +5,6 @@ import android.graphics.Typeface
 import android.util.Log
 import android.view.Gravity
 import com.example.ageanimeplugin.plugin.util.JsoupUtil
-import com.example.ageanimeplugin.plugin.util.ParseHtmlUtil.getImageUrl
 import com.su.mediabox.pluginapi.components.IMediaDetailPageDataComponent
 import com.su.mediabox.pluginapi.action.ClassifyAction
 import com.su.mediabox.pluginapi.action.DetailAction
@@ -22,71 +21,60 @@ class MediaDetailPageDataComponent : IMediaDetailPageDataComponent {
         var cover = ""
         var title = ""
         var desc = ""
-        var score = -1F
         var upState = ""
-        val url = Const.host + partUrl
+        val url =  partUrl
         val document = JsoupUtil.getDocument(url)
         val tags = mutableListOf<TagData>()
-
         val details = mutableListOf<BaseData>()
 
         //TODO 并发优化
-//        Log.e("TAG","番剧头部信息")
-        val left = document.getElementsByClass("div_left").first()
+        val left = document.getElementsByClass("video_detail_left").first()
         left?.let {
-            val imgLeft = it.select(".poster")
-            cover = imgLeft.attr("src")
-            title = imgLeft.attr("alt")
-            //更新状况
-            upState = it.select(".detail_imform_kv")[7].text()
-
-            //年份
-            val yearEm = it.select(".detail_imform_kv")[6].select(".detail_imform_value")
-            val year = Regex("\\d+").find(yearEm.text())?.value
-            if (year != null)
-                tags.add(TagData(year).apply {
-                    action = ClassifyAction.obtain(
-                        yearEm.attr("href"),
-                        "", year
-                    )
-                })
-            //地区
-            val animeArea = it.select(".detail_imform_kv")[0].select(".detail_imform_value")
-            tags.add(TagData(animeArea.text()).apply {
-                action = ClassifyAction.obtain(
-                    animeArea.attr("href"),
-                    "",
-                    animeArea.text()
-                )
-            })
-//            类型
-            val typeElements = it.select(".detail_imform_kv")[8].text()
-            tags.add(TagData(typeElements).apply {
-                action = ClassifyAction.obtain(
-                    "",
-                    "",
-                    typeElements
-                )
-            })
-            //标签
-            val tagElements = it.select(".detail_imform_kv")[9].text()
-            val name = tagElements
-            tags.add(TagData(name).apply {
-                action = ClassifyAction.obtain(
-                    "",
-                    "", name
-                )
-            })
-            //评分
-            score = 0.0F
+            cover = it.select(".video_detail_cover").select("img").attr("data-original")
+            // https://cdn.aqdstatic.com:966/age/20230133.jpg
+            val list = it.select(".detail_imform_list").select("li")
+            for (li in list){
+                val tag = li.select(".detail_imform_tag").text()
+                val value = li.select(".detail_imform_value").text()
+                when(tag){
+                    "播放状态：" ->{  upState = value }
+                    "首播时间：" ->{
+                        tags.add(TagData(value.split("-")[0]).apply {
+                            action = ClassifyAction.obtain(
+                                "",
+                                "", value
+                            )
+                        })
+                    }
+                    "地区：" ->{
+                        tags.add(TagData(value).apply {
+                            action = ClassifyAction.obtain(
+                                "",
+                                "", value
+                            )
+                        })
+                    }
+                    "标签：" ->{
+                        value.split(" ").forEach{ tag->
+                            tags.add(TagData(tag).apply {
+                                action = ClassifyAction.obtain(
+                                    "",
+                                    "", tag
+                                )
+                            })
+                        }
+                    }
+                    else -> {}
+                }
+            }
         }
 
-        val right = document.getElementsByClass("div_right").first()
+        val right = document.getElementsByClass("video_detail_right").first()
         right?.let {
-            val playlistDiv = it.select("#playlist-div")
-            val playNameList = playlistDiv.select("li")
-            val playEpisodeList = playlistDiv.select("[class=movurl]")
-
+            title = it.select(".video_detail_title").text()
+            val playlistDiv = it.select(".video_detail_playlist_wrapper")
+            val playNameList = playlistDiv.select("ul[class='nav nav-pills']").select("li")
+            val playEpisodeList = playlistDiv.select(".tab-content").select(">div")
             for (index in 0..playNameList.size) {
                 val playName = playNameList.getOrNull(index)
                 val playEpisode = playEpisodeList.getOrNull(index)
@@ -96,7 +84,7 @@ class MediaDetailPageDataComponent : IMediaDetailPageDataComponent {
                         continue
                     details.add(
                         SimpleTextData(
-                            playName.select("li").text() + "(${episodes.size}集)"
+                            playName.select("button").text() + "(${episodes.size}集)"
                         ).apply {
                             fontSize = 16F
                             fontColor = Color.WHITE
@@ -105,12 +93,11 @@ class MediaDetailPageDataComponent : IMediaDetailPageDataComponent {
                     details.add(EpisodeListData(episodes))
                 }
             }
-
-            desc = it.select(".detail_imform_desc_pre").select("p").text()
+            desc = it.select(".video_detail_desc").text()
         }
 
 //        Log.e("TAG", "系列动漫推荐---->")
-        document.select("#recommend_block").first()?.also {
+        document.select(".video_list_box--bd").first()?.also {
             val series = parseSeries(it)
             if (series.isNotEmpty()) {
                 Log.e("其他系列作品", "size=${series.size}")
@@ -125,7 +112,7 @@ class MediaDetailPageDataComponent : IMediaDetailPageDataComponent {
         }
 
         return Triple(cover, title, mutableListOf<BaseData>().apply {
-            add(Cover1Data(cover, score = score).apply {
+            add(Cover1Data(cover).apply {
                 layoutConfig =
                     BaseData.LayoutConfig(
                         itemSpacing = 12.dp,
@@ -177,13 +164,13 @@ class MediaDetailPageDataComponent : IMediaDetailPageDataComponent {
 
     private fun parseSeries(element: Element): List<MediaInfo1Data> {
         val videoInfoItemDataList = mutableListOf<MediaInfo1Data>()
-        val results: Elements = element.select("ul").select("li")
+        val results: Elements = element.select(".col")
         for (i in results.indices) {
-            val cover = results[i].select("img").attr("data-src")
-            val title = results[i].select("a")[1].text()
-            val url = results[i].select("a")[1].attr("href")
+            val cover = results[i].select(".video_item--image").select("img").attr("data-original")
+            val title = results[i].select(".video_item-title").select("a").text()
+            val url = results[i].select(".video_item-title").select("a").attr("href")
             val item = MediaInfo1Data(
-                title, cover, Const.host + url,
+                title, cover,  url,
                 nameColor = Color.WHITE, coverHeight = 120.dp
             ).apply {
                 action = DetailAction.obtain(url)

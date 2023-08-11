@@ -1,7 +1,6 @@
 package com.example.ageanimeplugin.plugin.components
 
 import android.util.Log
-import com.example.ageanimeplugin.plugin.components.Const.host
 import com.example.ageanimeplugin.plugin.components.Const.ua
 import com.example.ageanimeplugin.plugin.danmaku.OyydsDanmaku
 import com.example.ageanimeplugin.plugin.danmaku.OyydsDanmakuParser
@@ -74,7 +73,7 @@ class VideoPlayPageDataComponent : IVideoPlayPageDataComponent {
     }
 
     override suspend fun getVideoPlayMedia(episodeUrl: String): VideoPlayMedia {
-        val url = host + episodeUrl
+        val url = episodeUrl
         val document = JsoupUtil.getDocument(url)
 
         val cookies = mapOf("cookie" to PluginPreferenceIns.get(JsoupUtil.cfClearanceKey, ""))

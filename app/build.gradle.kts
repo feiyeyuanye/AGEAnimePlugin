@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.ageanimeplugin"
         minSdk  = 24
         targetSdk = 31
-        versionCode = 5
-        versionName = "1.5"
+        versionCode = 6
+        versionName = "1.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

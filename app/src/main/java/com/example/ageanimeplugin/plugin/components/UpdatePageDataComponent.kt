@@ -3,13 +3,18 @@ package com.example.ageanimeplugin.plugin.components
 import android.graphics.Color
 import android.graphics.Typeface
 import android.util.Log
+import android.view.Gravity
 import com.example.ageanimeplugin.plugin.util.JsoupUtil
 import com.su.mediabox.pluginapi.action.DetailAction
 import com.su.mediabox.pluginapi.components.ICustomPageDataComponent
 import com.su.mediabox.pluginapi.data.BaseData
 import com.su.mediabox.pluginapi.data.MediaInfo1Data
 import com.su.mediabox.pluginapi.data.SimpleTextData
+import com.su.mediabox.pluginapi.data.TagData
+import com.su.mediabox.pluginapi.data.TextData
+import com.su.mediabox.pluginapi.data.ViewPagerData
 import com.su.mediabox.pluginapi.util.UIUtil.dp
+import org.jsoup.select.Elements
 
 /**
  * FileName: UpdatePageDataComponent
@@ -18,37 +23,62 @@ import com.su.mediabox.pluginapi.util.UIUtil.dp
  * Profile: 最近更新
  */
 class UpdatePageDataComponent : ICustomPageDataComponent {
-    private val layoutSpanCount = 6
+    private val layoutSpanCount = 12
 
     override val pageName: String
-        get() = "最近更新"
+        get() = "一周更新"
+
+    private val days = mutableListOf<String>()
+    private lateinit var updateList: Elements
 
     override suspend fun getData(page: Int): List<BaseData>? {
-//        Log.e("TAG","page: ${page}")
-        val url = Const.host + "/update?page=$page"
-        val document = JsoupUtil.getDocument(url)
-        val data = mutableListOf<BaseData>()
-
-        data.add(SimpleTextData("第${page}页").apply {
-            layoutConfig = BaseData.LayoutConfig(layoutSpanCount, 14.dp)
-            fontSize = 15F
-            fontStyle = Typeface.BOLD
-            fontColor = Color.BLACK
-            spanSize = layoutSpanCount
-        })
-        val li = document.select(".ul_li_a6").select("li")
-        for (liE in li){
-            val img = liE.select("img")
-            val name = img.attr("alt")
-            val coverUrl = img.attr("src")
-            val videoUrl = liE.select("a").first()?.attr("href")?:""
-            val episode =   img.attr("title")
-            data.add(MediaInfo1Data(name, coverUrl, videoUrl, episode ?: "")
-                .apply {
-                    spanSize = layoutSpanCount / 3
-                    action = DetailAction.obtain(videoUrl)
-                })
+        if (page != 1)
+            return null
+        val url = Const.host + "/update"
+        val doc = JsoupUtil.getDocument(url).select("#recent_update_video_wrapper").first() ?: return null
+        days.clear()
+        doc.select(".position-absolute").forEach {
+            days.add(it.text())
         }
-        return data
+        updateList = doc.select(">div")?: return null
+        val updateLoader = object : ViewPagerData.PageLoader {
+            override fun pageName(page: Int): String = days[page]
+
+            override suspend fun loadData(page: Int): List<BaseData> {
+//                Log.e("TAG", "获取更新列表 $page ${updateList[page]}")
+                //ul元素
+                val target = updateList[page]
+                val data = mutableListOf<BaseData>()
+                val li = target.select(".video_list_box--bd").select(".col")
+                for (em in li) {
+                    val titleEm = em.select("a")
+                    val itemTitle = titleEm.text()
+                    val coverUrl = em.select("img").attr("data-original")
+                    val episode = em.select("span").first()?.text()
+                    val itemUrl = titleEm.attr("href")
+                    if (!itemTitle.isNullOrBlank() && !episode.isNullOrBlank() && !url.isNullOrBlank()) {
+                        Log.d("添加更新", "$itemTitle $episode $url")
+                        data.add(MediaInfo1Data(itemTitle, coverUrl, itemUrl, episode ?: "")
+                            .apply {
+                                spanSize = layoutSpanCount / 3
+                                action = DetailAction.obtain(itemUrl)
+                            })
+                    }
+                }
+                data[0].layoutConfig = BaseData.LayoutConfig(spanCount = layoutSpanCount)
+                return data
+            }
+        }
+        return listOf(ViewPagerData(mutableListOf<ViewPagerData.PageLoader>().apply {
+            repeat(7) {
+                add(updateLoader)
+            }
+        }).apply {
+            layoutConfig = BaseData.LayoutConfig(
+                itemSpacing = 0,
+                listLeftEdge = 0,
+                listRightEdge = 0
+            )
+        })
     }
 }

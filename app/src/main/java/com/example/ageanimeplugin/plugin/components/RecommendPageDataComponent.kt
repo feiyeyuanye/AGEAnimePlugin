@@ -18,31 +18,22 @@ import com.su.mediabox.pluginapi.util.UIUtil.dp
  * Profile: 每日推荐
  */
 class RecommendPageDataComponent  : ICustomPageDataComponent {
-    private val layoutSpanCount = 6
+    private val layoutSpanCount = 12
 
     override val pageName: String
         get() = "每日推荐"
 
     override suspend fun getData(page: Int): List<BaseData>? {
-//        Log.e("TAG","page: ${page}")
-        val url = Const.host + "/recommend?page=$page"
+        val url = Const.host + "/recommend/$page"
         val document = JsoupUtil.getDocument(url)
         val data = mutableListOf<BaseData>()
-
-        data.add(SimpleTextData("第${page}页").apply {
-            layoutConfig = BaseData.LayoutConfig(layoutSpanCount, 14.dp)
-            fontSize = 15F
-            fontStyle = Typeface.BOLD
-            fontColor = Color.BLACK
-            spanSize = layoutSpanCount
-        })
-        val li = document.select(".ul_li_a6").select("li")
+        val content = document.select(".video_list_box--bd").select(".row")
+        val li = content.select(".col")
         for (liE in li){
-            val img = liE.select("img")
-            val name = img.attr("alt")
-            val coverUrl = img.attr("src")
+            val name = liE.select("a").text()
+            val coverUrl = liE.select("img").attr("data-original")
             val videoUrl = liE.select("a").first()?.attr("href")?:""
-            val episode = img.attr("title")
+            val episode = liE.select("span").text()
             data.add(
                 MediaInfo1Data(name, coverUrl, videoUrl, episode ?: "")
                 .apply {
@@ -50,6 +41,7 @@ class RecommendPageDataComponent  : ICustomPageDataComponent {
                     action = DetailAction.obtain(videoUrl)
                 })
         }
+        data[0].layoutConfig = BaseData.LayoutConfig(spanCount = layoutSpanCount)
         return data
     }
 }

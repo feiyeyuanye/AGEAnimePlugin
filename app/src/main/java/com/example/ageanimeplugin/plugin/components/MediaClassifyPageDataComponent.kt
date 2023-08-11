@@ -19,6 +19,7 @@ class MediaClassifyPageDataComponent : IMediaClassifyPageDataComponent {
         val cookies = mapOf("cookie" to PluginPreferenceIns.get(JsoupUtil.cfClearanceKey, ""))
         val document = Jsoup.parse(
             WebUtilIns.getRenderedHtmlCode(
+                // https://www.agemys.org/catalog/all-all-all-all-all-time-1
                 Const.host + "/catalog/all-all-all-all-all-time-1", loadPolicy = object :
                     WebUtil.LoadPolicy by WebUtil.DefaultLoadPolicy {
                     override val headers = cookies
@@ -27,7 +28,7 @@ class MediaClassifyPageDataComponent : IMediaClassifyPageDataComponent {
                 }
             )
         )
-        document.getElementById("search-list")?.getElementsByTag("li")?.forEach {
+        document.getElementById("filter_box")?.select(".col-md-12")?.forEach {
             classifyItemDataList.addAll(ParseHtmlUtil.parseClassifyEm(it))
         }
         return classifyItemDataList
@@ -54,7 +55,7 @@ class MediaClassifyPageDataComponent : IMediaClassifyPageDataComponent {
         if (!url.startsWith(Const.host))
             url = Const.host + "/catalog/"+ url
 //        Log.d("TAG", "获取分类数据 $url")  // https://www.agemys.net/catalog/all-all-all-all-all-time-2-中国-all-all
-        val document = JsoupUtil.getDocument(url)
+        val document = JsoupUtil.getDocument(url).select("#cata_video_list").select(".col-md-12")
         classifyList.addAll(
                 ParseHtmlUtil.parseSearchEm(
                     document,

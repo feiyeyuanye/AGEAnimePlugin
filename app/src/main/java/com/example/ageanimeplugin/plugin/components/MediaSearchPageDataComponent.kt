@@ -12,12 +12,11 @@ class MediaSearchPageDataComponent : IMediaSearchPageDataComponent {
 
     override suspend fun getSearchData(keyWord: String, page: Int): List<BaseData> {
         val searchResultList = mutableListOf<BaseData>()
-//        https://www.agemys.net/search?query=%E9%BE%99&page=1
+        // https://www.agemys.org/search?query=%E9%BE%99&page=2
         val url = "${host}/search?query=${Uri.encode(keyWord, ":/-![].,%?&=")}&page=${page}"
         val document = JsoupUtil.getDocument(url)
-        val lpic: Elements = document.select("[class=blockcontent1]")
-        searchResultList.addAll(ParseHtmlUtil.parseSearchEm(lpic[0], url))
+        val lpic: Elements = document.select("#cata_video_list").select(".col-md-12")
+        searchResultList.addAll(ParseHtmlUtil.parseSearchEm(lpic, url))
         return searchResultList
     }
-
 }

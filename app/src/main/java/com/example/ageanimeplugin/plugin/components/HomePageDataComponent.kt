@@ -2,20 +2,14 @@ package com.example.ageanimeplugin.plugin.components
 
 import android.graphics.Color
 import android.graphics.Typeface
-import android.util.Log
 import android.view.Gravity
 import android.widget.ImageView
-import com.example.ageanimeplugin.plugin.actions.TodoAction
 import com.example.ageanimeplugin.plugin.components.Const.host
 import com.example.ageanimeplugin.plugin.util.JsoupUtil
-import com.example.ageanimeplugin.plugin.util.ParseHtmlUtil
-import com.example.ageanimeplugin.plugin.util.ParseHtmlUtil.getImageUrl
-import com.su.mediabox.pluginapi.action.ClassifyAction
 import com.su.mediabox.pluginapi.action.CustomPageAction
 import com.su.mediabox.pluginapi.action.DetailAction
 import com.su.mediabox.pluginapi.components.IHomePageDataComponent
 import com.su.mediabox.pluginapi.data.BaseData
-import com.su.mediabox.pluginapi.data.HorizontalListData
 import com.su.mediabox.pluginapi.data.MediaInfo1Data
 import com.su.mediabox.pluginapi.data.SimpleTextData
 import com.su.mediabox.pluginapi.util.UIUtil.dp
@@ -87,73 +81,49 @@ class HomePageDataComponent : IHomePageDataComponent {
                 action = CustomPageAction.obtain(UpdatePageDataComponent::class.java)
             })
 
-        // 各类推荐
-        val types = doc.getElementsByClass("div_left baseblock").first() ?: return null
-        var hasUpdate = false
-        val update = mutableListOf<BaseData>()
-        for (em in types.children()) {
-            Log.d("元素", em.className())
-            when (em.className()) {
-                //分类
-                "blocktitle" -> {
-                    val type = em.select("a")
-                    val typeName = type.text()
-                    val typeUrl = type.attr("href")
-                    if (!typeName.isNullOrBlank()) {
-                        typeName.contains("推荐").also {
-                            if (!it && hasUpdate) {
-                                //示例使用水平列表视图组件
-                                data.add(HorizontalListData(update, 120.dp).apply {
-                                    spanSize = layoutSpanCount
-                                })
-                            }
-                            hasUpdate = it
-                        }
-
-                        data.add(SimpleTextData(typeName).apply {
-                            fontSize = 15F
-                            fontStyle = Typeface.BOLD
-                            fontColor = Color.BLACK
-                            spanSize = layoutSpanCount / 2
-                        })
-                        data.add(SimpleTextData("查看更多 >").apply {
-                            fontSize = 12F
-                            gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
-                            fontColor = Const.INVALID_GREY
-                            spanSize = layoutSpanCount / 2
-                        }.apply {
-                            if (typeName.contains("推荐")){
-                                action = CustomPageAction.obtain(RecommendPageDataComponent::class.java)
-                            }else if (typeName.contains("更新")){
-                                action = CustomPageAction.obtain(UpdatePageDataComponent::class.java)
-                            }
-                        })
-//                        Log.d("视频分类", "typeName=$typeName url=$typeUrl")
+        val content = doc.select(".body_content_wrapper").select(".row")
+        val videoListBox = content.select(".video_list_box")
+        for (box in videoListBox){
+            // 分类
+            val hd = box.select(".video_list_box--hd")
+            val typeName = hd.select(".title").first()?.ownText()
+//            val typeUrl = hd.select("a").attr("href")
+            if (!typeName.isNullOrBlank()) {
+                data.add(SimpleTextData(typeName).apply {
+                    fontSize = 15F
+                    fontStyle = Typeface.BOLD
+                    fontColor = Color.BLACK
+                    spanSize = layoutSpanCount / 2
+                })
+                data.add(SimpleTextData("查看更多 >").apply {
+                    fontSize = 12F
+                    gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
+                    fontColor = Const.INVALID_GREY
+                    spanSize = layoutSpanCount / 2
+                }.apply {
+                    if (typeName.contains("推荐")){
+                        action = CustomPageAction.obtain(RecommendPageDataComponent::class.java)
+                    }else if (typeName.contains("更新")){
+                        action = CustomPageAction.obtain(UpdatePageDataComponent::class.java)
                     }
-                }
-                //分类下的视频
-                "blockcontent" -> {
-                    for (video in em.select("li")) {
-                        video.getElementsByClass("anime_icon1_name_a").first()?.apply {
-                            val name = select(".anime_icon1_name").text()
-                            val videoUrl = attr("href")
-                            // https://cdn.aqdstatic.com:966/age/20230083.jpg
-                            val coverUrl = video.select("img").first()?.attr("src")
-                            val episode = video.select("[title]").first()?.text()
-                            if (!name.isNullOrBlank() && !videoUrl.isNullOrBlank() && !coverUrl.isNullOrBlank()) {
-                                (if (hasUpdate) update else data).add(
-                                    MediaInfo1Data(name, coverUrl, videoUrl, episode ?: "")
-                                        .apply {
-                                            spanSize = layoutSpanCount / 3
-                                            action = DetailAction.obtain(videoUrl)
-                                            if (hasUpdate) {
-                                                paddingRight = 8.dp
-                                            }
-                                        })
-//                                Log.d("添加视频", "($name) ($videoUrl) ($coverUrl) ($episode)")
-                            }
-                        }
-                    }
+                })
+            }
+            // 视频
+            val bd = box.select(".video_list_box--bd")
+            val items = bd.select(".video_item")
+            for (video in items) {
+                val name = video.select(".video_item-title").select("a").text()
+                val videoUrl = video.select(".video_item-title").select("a").attr("href")
+                // https://cdn.aqdstatic.com:966/age/20230127.jpg
+                val coverUrl = video.select(".video_item--image").select("img").attr("data-original")
+                val episode = video.select(".video_item--image").select("span").text()
+                if (!name.isNullOrBlank() && !videoUrl.isNullOrBlank() && !coverUrl.isNullOrBlank()) {
+                    data.add(MediaInfo1Data(name, coverUrl, videoUrl, episode ?: "")
+                        .apply {
+                            spanSize = layoutSpanCount / 2
+                            action = DetailAction.obtain(videoUrl)
+                        })
+//                                Log.e("TAG", "添加视频 ($name) ($videoUrl) ($coverUrl) ($episode)")
                 }
             }
         }

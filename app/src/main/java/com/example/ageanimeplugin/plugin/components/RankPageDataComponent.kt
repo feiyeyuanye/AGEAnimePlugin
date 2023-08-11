@@ -7,6 +7,7 @@ import com.example.ageanimeplugin.plugin.util.ParseHtmlUtil
 import com.su.mediabox.pluginapi.components.ICustomPageDataComponent
 import com.su.mediabox.pluginapi.data.BaseData
 import com.su.mediabox.pluginapi.data.ViewPagerData
+import org.jsoup.nodes.Element
 
 class RankPageDataComponent : ICustomPageDataComponent {
 
@@ -16,27 +17,46 @@ class RankPageDataComponent : ICustomPageDataComponent {
     override suspend fun getData(page: Int): List<BaseData>? {
         if (page != 1)
             return null
-        val url = host
+        val url = "$host/rank"
         val doc = JsoupUtil.getDocument(url)
 
-        val head = doc.select("#nav")
-        val headNav = head.select(".nav_button")
+        val content = doc.select(".rank_list_box--bd").select(".col-4")
 
-        //排行榜
-        // 搜有动画排行榜
-        val allTag = headNav[4].let {
+        // 排行榜
+        val weeklyCharts = content[0].let {
             object : ViewPagerData.PageLoader{
                 override fun pageName(page: Int): String {
-                    return "所有动画播放排行"
+                    return "周榜 TOP50"
                 }
 
                 override suspend fun loadData(page: Int): List<BaseData> {
-                    return getTotalRankData()
+                    return getTotalRankData(it)
                 }
             }
         }
+        val freshReading = content[1].let {
+            object : ViewPagerData.PageLoader{
+                override fun pageName(page: Int): String {
+                    return "月榜 TOP50"
+                }
 
-        return listOf(ViewPagerData(mutableListOf(allTag)).apply {
+                override suspend fun loadData(page: Int): List<BaseData> {
+                    return getTotalRankData(it)
+                }
+            }
+        }
+        val topTrends = content[2].let {
+            object : ViewPagerData.PageLoader{
+                override fun pageName(page: Int): String {
+                    return "总榜 TOP50"
+                }
+
+                override suspend fun loadData(page: Int): List<BaseData> {
+                    return getTotalRankData(it)
+                }
+            }
+        }
+        return listOf(ViewPagerData(mutableListOf(weeklyCharts,freshReading,topTrends)).apply {
             layoutConfig = BaseData.LayoutConfig(
                 itemSpacing = 0,
                 listLeftEdge = 0,
@@ -48,12 +68,9 @@ class RankPageDataComponent : ICustomPageDataComponent {
     /**
      * 所有排行
      */
-    private suspend fun getTotalRankData(): List<BaseData> {
-        val document = JsoupUtil.getDocument("$host/rank?tag=all")
+    private suspend fun getTotalRankData(element:Element): List<BaseData> {
         val data = mutableListOf<BaseData>()
-        document.select("div[class='blockcontent div_right_r_3']").first()?.also {
-            data.addAll(ParseHtmlUtil.parseRankEm(it))
-        }
+        data.addAll(ParseHtmlUtil.parseRankEm(element))
         return data
     }
 }
